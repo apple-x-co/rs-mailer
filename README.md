@@ -1,10 +1,16 @@
 # rs-sendmail
 
-Config
+## Usage
+
+```bash
+SMTP_HOST=example.com SMTP_PASSWORD=xxx SMTP_PORT=587 SMTP_USER=xxx rs-sendmail --config config.json 
+```
+
+## Config
 
 ```json
 {
-  "$schema": "./schema/schema.json",
+  "$schema": "https://raw.githubusercontent.com/apple-x-co/rs-sendmail/refs/heads/main/schema/schema.json",
   "from": {
     "user": "hello",
     "domain": "example.com",
@@ -19,10 +25,4 @@ Config
   "subject": "This mail is TEST",
   "body": "HI!"
 }
-```
-
-Run
-
-```bash
-SMTP_HOST=example.com SMTP_PASSWORD=xxx SMTP_PORT=587 SMTP_USER=xxx rs-sendmail --config config.json 
 ```
