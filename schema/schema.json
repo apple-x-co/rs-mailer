@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "definitions": {
+    "address": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "domain": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 256
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 100
+        }
+      },
+      "required": [
+        "user",
+        "domain"
+      ]
+    }
+  },
+  "properties": {
+    "from": {
+      "$ref": "#/definitions/address"
+    },
+    "to": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/address"
+      },
+      "minItems": 1
+    },
+    "cc": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/address"
+      }
+    },
+    "bcc": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/address"
+      }
+    },
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "body": {
+      "type": "string",
+      "minLength": 1
+    },
+    "html": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "required": [
+    "from",
+    "to",
+    "subject",
+    "body"
+  ]
+}
