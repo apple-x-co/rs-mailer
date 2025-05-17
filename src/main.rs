@@ -1,8 +1,8 @@
-use anyhow::{Result, anyhow};
+mod config;
+
+use anyhow::Result;
 use clap::Parser;
 use lettre::Transport;
-use serde::Deserialize;
-use std::fs::read_to_string;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -10,26 +10,6 @@ struct Args {
     #[arg(short, long)]
     config: String,
 }
-
-#[derive(Debug, Deserialize)]
-struct Destination {
-    user: String,
-    domain: String,
-    name: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct Config {
-    from: Destination,
-    to: Vec<Destination>,
-    cc: Option<Vec<Destination>>,
-    bcc: Option<Vec<Destination>>,
-    subject: String,
-    body: String,
-    html: Option<String>,
-}
-
-const JSON_SCHEMA_BYTES: &'static [u8] = include_bytes!("../schema/schema.json");
 
 fn main() -> Result<()> {
     let smtp_host = std::env::var("SMTP_HOST")?;
@@ -40,16 +20,7 @@ fn main() -> Result<()> {
 
     let args = Args::parse();
 
-    let schema = serde_json::from_slice(JSON_SCHEMA_BYTES)?;
-    let validator = jsonschema::validator_for(&schema)?;
-    let json_string = read_to_string(args.config)?;
-    let json: serde_json::Value = serde_json::from_str(&json_string)?;
-
-    if !validator.validate(&json).is_ok() {
-        return Err(anyhow!("JSON validation failed".to_string()));
-    }
-
-    let config: Config = serde_json::from_str(&json_string)?;
+    let config = config::parse(&args.config)?;
 
     let mut message_builder = lettre::Message::builder();
     message_builder = message_builder.from(lettre::message::Mailbox::new(
