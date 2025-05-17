@@ -3,7 +3,9 @@
 ## Usage
 
 ```bash
-SMTP_HOST=example.com SMTP_PASSWORD=xxx SMTP_PORT=587 SMTP_USER=xxx rs-sendmail --config config.json 
+SMTP_HOST=example.com SMTP_PASSWORD=xxx SMTP_USER=xxx rs-sendmail --config config.json
+# SMTP_HOST=example.com SMTP_PASSWORD=xxx SMTP_PORT=587 SMTP_USER=xxx rs-sendmail --config config.json
+# SMTP_HOST=example.com SMTP_PASSWORD=xxx SMTP_PORT=587 SMTP_ENCRYPTION=starttls SMTP_USER=xxx rs-sendmail --config config.json 
 ```
 
 ## Config
