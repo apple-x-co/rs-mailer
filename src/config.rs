@@ -10,6 +10,13 @@ pub struct Destination {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct File {
+    pub path: String,
+    pub name: String,
+    pub media_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct Config {
     pub from: Destination,
     pub to: Vec<Destination>,
@@ -18,6 +25,7 @@ pub struct Config {
     pub subject: String,
     pub body: String,
     // pub html: Option<String>,
+    pub files: Option<Vec<File>>,
 }
 
 

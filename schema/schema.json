@@ -28,6 +28,27 @@
         "user",
         "domain"
       ]
+    },
+    "file": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "media_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ]
     }
   },
   "properties": {
@@ -67,6 +88,12 @@
         "string",
         "null"
       ]
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/file"
+      }
     }
   },
   "required": [

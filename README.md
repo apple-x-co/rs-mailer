@@ -25,6 +25,12 @@ SMTP_HOST=example.com SMTP_PASSWORD=xxx SMTP_USER=xxx rs-sendmail --config confi
     }
   ],
   "subject": "This mail is TEST",
-  "body": "HI!"
+  "body": "HI!",
+  "files": [
+    {
+      "path": "/path/to/elePHPant-clear.png",
+      "name": "elePHPant-clear.png"
+    }
+  ]
 }
 ```

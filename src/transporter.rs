@@ -1,12 +1,14 @@
 use crate::config::Config;
-use anyhow::{anyhow, Result};
-use lettre::message::header::ContentType;
-use lettre::message::Mailbox;
-use lettre::transport::smtp::authentication::Credentials;
+use anyhow::{Result, anyhow};
 use lettre::Address;
 use lettre::Message;
 use lettre::SmtpTransport;
 use lettre::Transport;
+use lettre::message::header::ContentType;
+use lettre::message::{Attachment, Mailbox, MultiPart, SinglePart};
+use lettre::transport::smtp::authentication::Credentials;
+use std::fs;
+use std::io::{BufReader, Read};
 
 pub struct Server {
     pub host: String,
@@ -53,17 +55,60 @@ pub fn send(server: Server, config: Config) -> Result<()> {
     }
 
     message_builder = message_builder.subject(config.subject.clone());
-    message_builder = message_builder.header(ContentType::TEXT_PLAIN);
 
-    // TODO: Attachments
-    // xxx
-    // xxx
+    let mut attachments: Vec<SinglePart> = Vec::new();
+    if let Some(files) = config.files {
+        for file in files {
+            if let Some(media_type) = file.media_type {
+                let attachment = Attachment::new(file.name.clone()).body(
+                    fs::read(file.path.clone())?,
+                    ContentType::parse(&media_type)?,
+                );
+
+                attachments.push(attachment);
+
+                continue;
+            }
+
+            let attachment_file = fs::File::open(file.path.clone())
+                .map_err(|e| anyhow!(e))?;
+
+            let mut buf_reader = BufReader::new(attachment_file);
+            let mut buffer = [0; 24];
+            buf_reader.read(&mut buffer)?;
+
+            if let Some(t) = infer::get(&buffer) {
+                let attachment = Attachment::new(file.name.clone()).body(
+                    fs::read(file.path.clone())?,
+                    ContentType::parse(t.mime_type())?,
+                );
+
+                attachments.push(attachment);
+            }
+        }
+    }
 
     // TODO: HTML
     // xxx
     // xxx
 
-    let message = message_builder.body(config.body)?;
+    let message = if attachments.len() > 0 {
+        let mut multipart = MultiPart::mixed().singlepart(
+            SinglePart::builder()
+                .header(ContentType::TEXT_HTML)
+                .body(config.body),
+        );
+
+        for attachment in attachments {
+            multipart = multipart.singlepart(attachment);
+        }
+
+        message_builder.multipart(multipart)?
+    } else {
+        message_builder
+            .header(ContentType::TEXT_PLAIN)
+            .body(config.body)?
+    };
 
     let creds = Credentials::new(server.user, server.password);
     let mailer = match server.encryption.as_str() {
@@ -79,6 +124,6 @@ pub fn send(server: Server, config: Config) -> Result<()> {
 
     match mailer.send(&message) {
         Ok(_) => Ok(()),
-        Err(e) => Err(anyhow!("Could not send email: {:?}", e))
+        Err(e) => Err(anyhow!("Could not send email: {:?}", e)),
     }
 }
