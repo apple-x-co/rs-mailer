@@ -70,8 +70,7 @@ pub fn send(server: Server, config: Config) -> Result<()> {
                 continue;
             }
 
-            let attachment_file = fs::File::open(file.path.clone())
-                .map_err(|e| anyhow!(e))?;
+            let attachment_file = fs::File::open(file.path.clone()).map_err(|e| anyhow!(e))?;
 
             let mut buf_reader = BufReader::new(attachment_file);
             let mut buffer = [0; 24];
@@ -88,26 +87,60 @@ pub fn send(server: Server, config: Config) -> Result<()> {
         }
     }
 
-    // TODO: HTML
-    // xxx
-    // xxx
+    let message = if let Some(html) = config.html {
+        if attachments.len() > 0 {
+            let mut multipart = MultiPart::alternative().singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_PLAIN)
+                    .body(config.body),
+            );
 
-    let message = if attachments.len() > 0 {
-        let mut multipart = MultiPart::mixed().singlepart(
-            SinglePart::builder()
-                .header(ContentType::TEXT_HTML)
-                .body(config.body),
-        );
+            multipart = multipart.singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_HTML)
+                    .body(html),
+            );
+            
+            let mut mixedpart = MultiPart::mixed().multipart(multipart);
 
-        for attachment in attachments {
-            multipart = multipart.singlepart(attachment);
+            for attachment in attachments {
+                mixedpart = mixedpart.singlepart(attachment);
+            }
+
+            message_builder.multipart(mixedpart)?
+        } else {
+            let mut multipart = MultiPart::alternative().singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_PLAIN)
+                    .body(config.body),
+            );
+
+            multipart = multipart.singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_HTML)
+                    .body(html),
+            );
+
+            message_builder.multipart(multipart)?
         }
-
-        message_builder.multipart(multipart)?
     } else {
-        message_builder
-            .header(ContentType::TEXT_PLAIN)
-            .body(config.body)?
+        if attachments.len() > 0 {
+            let mut multipart = MultiPart::mixed().singlepart(
+                SinglePart::builder()
+                    .header(ContentType::TEXT_PLAIN)
+                    .body(config.body),
+            );
+
+            for attachment in attachments {
+                multipart = multipart.singlepart(attachment);
+            }
+
+            message_builder.multipart(multipart)?
+        } else {
+            message_builder
+                .header(ContentType::TEXT_PLAIN)
+                .body(config.body)?
+        }
     };
 
     let creds = Credentials::new(server.user, server.password);
