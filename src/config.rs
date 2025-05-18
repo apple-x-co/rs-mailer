@@ -23,7 +23,7 @@ pub struct Config {
     pub cc: Option<Vec<Destination>>,
     pub bcc: Option<Vec<Destination>>,
     pub subject: String,
-    pub body: String,
+    pub text: String,
     pub html: Option<String>,
     pub files: Option<Vec<File>>,
 }

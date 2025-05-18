@@ -5,7 +5,7 @@ use lettre::Message;
 use lettre::SmtpTransport;
 use lettre::Transport;
 use lettre::message::header::ContentType;
-use lettre::message::{Attachment, Mailbox, MultiPart, SinglePart};
+use lettre::message::{Attachment, Mailbox, MessageBuilder, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use std::fs;
 use std::io::{BufReader, Read};
@@ -87,61 +87,7 @@ pub fn send(server: Server, config: Config) -> Result<()> {
         }
     }
 
-    let message = if let Some(html) = config.html {
-        if attachments.len() > 0 {
-            let mut multipart = MultiPart::alternative().singlepart(
-                SinglePart::builder()
-                    .header(ContentType::TEXT_PLAIN)
-                    .body(config.body),
-            );
-
-            multipart = multipart.singlepart(
-                SinglePart::builder()
-                    .header(ContentType::TEXT_HTML)
-                    .body(html),
-            );
-            
-            let mut mixedpart = MultiPart::mixed().multipart(multipart);
-
-            for attachment in attachments {
-                mixedpart = mixedpart.singlepart(attachment);
-            }
-
-            message_builder.multipart(mixedpart)?
-        } else {
-            let mut multipart = MultiPart::alternative().singlepart(
-                SinglePart::builder()
-                    .header(ContentType::TEXT_PLAIN)
-                    .body(config.body),
-            );
-
-            multipart = multipart.singlepart(
-                SinglePart::builder()
-                    .header(ContentType::TEXT_HTML)
-                    .body(html),
-            );
-
-            message_builder.multipart(multipart)?
-        }
-    } else {
-        if attachments.len() > 0 {
-            let mut multipart = MultiPart::mixed().singlepart(
-                SinglePart::builder()
-                    .header(ContentType::TEXT_PLAIN)
-                    .body(config.body),
-            );
-
-            for attachment in attachments {
-                multipart = multipart.singlepart(attachment);
-            }
-
-            message_builder.multipart(multipart)?
-        } else {
-            message_builder
-                .header(ContentType::TEXT_PLAIN)
-                .body(config.body)?
-        }
-    };
+    let message = build_message(message_builder, config.text, config.html, attachments)?;
 
     let creds = Credentials::new(server.user, server.password);
     let mailer = match server.encryption.as_str() {
@@ -158,5 +104,68 @@ pub fn send(server: Server, config: Config) -> Result<()> {
     match mailer.send(&message) {
         Ok(_) => Ok(()),
         Err(e) => Err(anyhow!("Could not send email: {:?}", e)),
+    }
+}
+
+fn build_message(
+    builder: MessageBuilder,
+    text_body: String,
+    html_body: Option<String>,
+    attachments: Vec<SinglePart>,
+) -> Result<Message> {
+    // プレーンテキスト部分を作成
+    let plain_text_part = SinglePart::builder()
+        .header(ContentType::TEXT_PLAIN)
+        .body(text_body);
+
+    // 添付ファイルの有無とHTMLの有無で4つのケースを処理
+    match (html_body, !attachments.is_empty()) {
+        // Case 1: HTMLあり、添付ファイルあり
+        (Some(html), true) => {
+            let html_part = SinglePart::builder()
+                .header(ContentType::TEXT_HTML)
+                .body(html);
+
+            let alternative_part = MultiPart::alternative()
+                .singlepart(plain_text_part)
+                .singlepart(html_part);
+
+            let mut mixed_part = MultiPart::mixed().multipart(alternative_part);
+
+            // 添付ファイルを追加
+            for attachment in attachments {
+                mixed_part = mixed_part.singlepart(attachment);
+            }
+
+            Ok(builder.multipart(mixed_part)?)
+        }
+
+        // Case 2: HTMLあり、添付ファイルなし
+        (Some(html), false) => {
+            let html_part = SinglePart::builder()
+                .header(ContentType::TEXT_HTML)
+                .body(html);
+
+            Ok(builder.multipart(
+                MultiPart::alternative()
+                    .singlepart(plain_text_part)
+                    .singlepart(html_part),
+            )?)
+        }
+
+        // Case 3: HTMLなし、添付ファイルあり
+        (None, true) => {
+            let mut mixed_part = MultiPart::mixed().singlepart(plain_text_part);
+
+            // 添付ファイルを追加
+            for attachment in attachments {
+                mixed_part = mixed_part.singlepart(attachment);
+            }
+
+            Ok(builder.multipart(mixed_part)?)
+        }
+
+        // Case 4: HTMLなし、添付ファイルなし
+        (None, false) => Ok(builder.singlepart(plain_text_part)?),
     }
 }
