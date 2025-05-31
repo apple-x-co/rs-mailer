@@ -11,15 +11,6 @@ Rustで書かれたシンプルで高性能なコマンドライン メールク
 - ⚡ **高性能**: Rustによる高速・安全な実装
 - 🛡️ **バリデーション**: JSON Schemaによる設定ファイルの検証
 
-## インストール
-
-### ソースからビルド
-```bash
-git clone https://github.com/your-username/rs-mailer.git
-cd rs-mailer
-cargo build --release
-```
-
 ## 使用方法
 
 ### 環境変数の設定
